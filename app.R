@@ -6,18 +6,12 @@ library(DT)
 library(plotly)
 library(psych)
 library(tidyverse)
-#library(summaryBox)
 library(spsComps)
 library(kableExtra)
 
-#theme <- bslib::bs_theme(version = 4)
-gg_corr <- readRDS("gg_corr.rds")
-corr_gg <- readRDS("corr_gg_temp.rds")
-dt <- readRDS("dt_temp.rds") 
-corr <- readRDS("corr.rds")
-all_data <- readRDS("all_data_temp.rds")
-corr_p <- readRDS("corr_p_temp.rds")
-old_to_new <- readRDS("old_to_new.rds")
+dt <- readRDS("dt.RDS") 
+all_data <- readRDS("all_data.rds")
+corr_p <- readRDS("corr_p.rds")
 trait_guilds <- as.list(sort(unique(all_data$`Trait guild`)))
 
 refs <- as.list(unique(all_data$Reference))
@@ -53,24 +47,13 @@ ui <- dashboardPage(skin = "black",
                                headerText = "External links")),
   dashboardSidebar(
     sidebarMenu(
-      # menuItem("Info about Traits", tabName = "traits"),
-      # menuItem("Correlations", tabName = "correlations"),
-      # menuItem("Raw Data", tabName = "raw"),
-      # menuItem("About", tabName = "about",
-      #          menuSubItem("How to use", tabName = "howto"),
-      #          menuSubItem("Info about calculations", tabName = "info")),
-      sidebarMenuOutput("test")
+      sidebarMenuOutput("menu")
     )
   ),
   dashboardBody(
     tabItems(
       tabItem(
         tabName = "traits",
-    # Boxes need to be put in a row (or column)
-    # fluidRow(
-    #   box(uiOutput("traitChoice"), width = 4),
-    #   box(uiOutput("traitSpecChoice"), width = 4),
-    #   box(uiOutput("studyChoice"), width = 4)),
     fluidRow(
         box(infoBtn('workingPop') %>%
               bsPopover(title = "Filtering traits",
@@ -87,15 +70,10 @@ ui <- dashboardPage(skin = "black",
           tabPanel("Experimental Conditions", DTOutput("metainfo"))))),
     tabItem(
       tabName = "correlations",
-      # fluidRow(box(uiOutput("traitChoicecorr"), width = 6),
-      #          box(uiOutput("traitSpecChoicecorr"), width = 6)),
       fluidRow(box(plotlyOutput("corr"), width = 6), box(DTOutput("corrtable"), width = 6))
       ),
     tabItem(
       tabName = "raw",
-      # fluidRow(box(uiOutput("traitChoiceraw"), width = 4),
-      #          box(uiOutput("traitSpecChoiceraw"), width = 4),
-      #          box(uiOutput("studyChoiceraw"), width = 4)),
       fluidRow(box(DTOutput("rawdata"), width = 12))
     ),
     tabItem(
@@ -138,7 +116,7 @@ ui <- dashboardPage(skin = "black",
 
 
 server <- function(input, output) {
-  output$test <- renderMenu({
+  output$menu <- renderMenu({
     sidebarMenu(
       menuItem("Info about Traits", tabName = "traits"),
       menuItem("Correlations", tabName = "correlations"),
@@ -173,34 +151,6 @@ server <- function(input, output) {
     )
   })
  
-  #  output$traitChoice <- renderUI({
-  #   selectizeInput("trait", 
-  #                  "Select trait category", 
-  #                  choices = trait_guilds,
-  #                  multiple = TRUE)
-  # })    
-  # 
-  # output$traitSpecChoice <- renderUI({
-  #   if(is.null(input$trait)){spec_trait <- as.list(unique(all_data$Trait))} else
-  #   {spec_trait <- all_data %>% 
-  #     filter(`Trait guild` %in% input$trait)
-  #   spec_trait <- as.list(unique(spec_trait$Trait))}
-  #   selectizeInput("trait_spec", 
-  #                  "Select specific trait", 
-  #                  choices = spec_trait,
-  #                  multiple = TRUE)
-  # })   
-  
-  # output$studyChoice <- renderUI({
-  #   if(is.null(input$trait)){study <- as.list(unique(all_data$Reference))} else
-  #   {study <- all_data %>% 
-  #     filter(`Trait guild` %in% input$trait)
-  #   study <- as.list(unique(study$Reference))}
-  #   selectizeInput("study", 
-  #                  "Select study", 
-  #                  choices = study,
-  #                  multiple = TRUE)
-  # })   
   output$instruct <- renderText({
     {if(is.null(input$trait) & is.null(input$study) & is.null(input$trait_spec)) data_table <- dt  else
       if(is.null(input$trait) & is.null(input$study)) data_table <- dt %>% 
@@ -377,12 +327,6 @@ server <- function(input, output) {
       ungroup() %>% 
       select(Reference, Authors, Title, Year, `Full Text URL`)%>% 
       distinct(Reference, .keep_all = TRUE)
-    # colnames <- pub_info$Reference
-    # pub_info <- pub_info %>% 
-    #   select(-Reference)
-    # 
-    # pub_info <- as.data.frame(t(pub_info)) 
-    # colnames(pub_info) <- colnames
     pub_info
   }, class = 'cell-border stripe', rownames = FALSE, 
   
@@ -428,12 +372,6 @@ server <- function(input, output) {
              `Sample size`, Housing, Diet, Temperature, `Wolbachia adjusted`, 
              `Baseline reference`, Observations)%>% 
       distinct(Description, .keep_all = TRUE)
-    # colnames <- meta_info$Reference
-    # meta_info <- meta_info %>% 
-    #   select(-Reference)
-    # 
-    # meta_info <- as.data.frame(t(meta_info)) 
-    # colnames(meta_info) <- colnames
     meta_info
   }, class = 'cell-border stripe', rownames = FALSE, 
   
@@ -549,26 +487,6 @@ server <- function(input, output) {
     buttons = c('copy', 'csv', 'excel')
   ))
   
-  # output$traitChoicecorr <- renderUI({
-  #   selectizeInput("traitcorr", 
-  #                  "Select trait category", 
-  #                  choices = trait_guilds,
-  #                  multiple = TRUE)
-  # })    
-  # 
-  # 
-  # 
-  # output$traitSpecChoicecorr <- renderUI({
-  #   if(is.null(input$traitcorr)){spec_trait <- as.list(unique(all_data$Trait))} else
-  #   {spec_trait <- all_data %>% 
-  #     filter(`Trait guild` %in% input$traitcorr)
-  #   spec_trait <- as.list(unique(spec_trait$Trait))}
-  #   selectizeInput("trait_speccorr", 
-  #                  "Select specific trait", 
-  #                  choices = spec_trait,
-  #                  multiple = TRUE)
-  # })   
-  
   output$corrtable <- renderDT({
     if(is.null(input$trait) & is.null(input$trait_spec)){filter_corr <- all_data%>% 
       select(Trait, Trait_old) %>% 
@@ -646,35 +564,6 @@ server <- function(input, output) {
     return(ggplotly(gg_corr))} 
   )
   
-  
-  # output$traitSpecChoiceraw <- renderUI({
-  #   if(is.null(input$trait)){spec_trait <- as.list(unique(all_data$Trait))} else
-  #   {spec_trait <- all_data %>% 
-  #     filter(`Trait guild` %in% input$trait)
-  #   spec_trait <- as.list(unique(spec_trait$Trait))}
-  #   selectizeInput("trait_specraw", 
-  #                  "Select specific trait", 
-  #                  choices = spec_trait,
-  #                  multiple = TRUE)
-  # })   
-  # 
-  # output$traitChoiceraw <- renderUI({
-  #   selectizeInput("traitraw", 
-  #                  "Select trait category", 
-  #                  choices = trait_guilds,
-  #                  multiple = TRUE)
-  # })    
-  # 
-  # output$studyChoiceraw <- renderUI({
-  #   if(is.null(input$trait)){study <- as.list(unique(all_data$Reference))} else
-  #   {study <- all_data %>% 
-  #     filter(`Trait guild` %in% input$trait)
-  #   study <- as.list(unique(study$Reference))}
-  #   selectizeInput("studyraw", 
-  #                  "Select study", 
-  #                  choices = study,
-  #                  multiple = TRUE)
-  # })   
   
   output$rawdata <- renderDT({
     {if(is.null(input$trait) & is.null(input$study) & is.null(input$trait_spec)) data_table <- all_data  else
