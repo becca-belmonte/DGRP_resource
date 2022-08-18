@@ -24,13 +24,23 @@ refs <- as.list(unique(all_data$Reference))
 
 sex <- as.list(unique(all_data$Sex))
 
+infoBtn <- function(id) {
+  actionButton(id,
+               label = "",
+               icon = icon("question"),
+               style = "info",
+               size = "extra-small",
+               class='btn action-button btn-info btn-xs shiny-bound-input'
+  )
+}
+
 ui <- dashboardPage(skin = "black",
   dashboardHeader(title = "DGRP resource",
                   dropdownMenu(type = "messages",
                                messageItem(
                                  from = "Project in Github",
                                  message = "Documentation, Source, Citation",
-                                 href = "https://github.com/becca-belmonte/scseq_analysis",
+                                 href = "https://github.com/becca-belmonte/DGRP_resource",
                                  icon = icon("fa-brands fa-github")
                                ),
                                messageItem(
@@ -39,7 +49,7 @@ ui <- dashboardPage(skin = "black",
                                  href = "https://onlinelibrary.wiley.com/",
                                  icon = icon("fa-thin fa-file")
                                ),
-                               icon = icon("fa-thin fa-circle-info"),
+                               icon = icon("fa-thin fa-link"),
                                headerText = "External links")),
   dashboardSidebar(
     sidebarMenu(
@@ -62,10 +72,16 @@ ui <- dashboardPage(skin = "black",
     #   box(uiOutput("traitSpecChoice"), width = 4),
     #   box(uiOutput("studyChoice"), width = 4)),
     fluidRow(
-        box(h3(textOutput("instruct"), align = "center"), DTOutput("table"), width = 6),
+        box(infoBtn('workingPop') %>%
+              bsPopover(title = "Filtering traits",
+                        content = "Use the selection tools on the left sidebar to limit your results based on the general category they belong to or the originial paper they came
+                from. Or if you have one trait in mind, select that from the middle selection tool.",
+                        placement = "bottom",
+                        trigger = "hover"
+              ),h3(textOutput("instruct"), align = "center"), DTOutput("table"), width = 6),
     box(h3(textOutput("selection"), align = "center"), plotlyOutput("barchart"), width = 6), 
         tabBox(width = 6,
-          tabPanel("Heritability Data", DTOutput("herinfo")), 
+          tabPanel("Heritability Data",  DTOutput("herinfo")), 
           tabPanel("Strongest Correlations", DTOutput("corrinfo")),
           tabPanel("Publication Data", DTOutput("pubinfo")),
           tabPanel("Experimental Conditions", DTOutput("metainfo"))))),
