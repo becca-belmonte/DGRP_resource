@@ -368,9 +368,8 @@ server <- function(input, output) {
     meta_info <- all_data %>% 
       filter(Trait %in% selected_trait)  %>% 
       ungroup() %>% 
-      select(Reference, Description, `Trait guild`, No_lines_used, Age,
-             `Sample size`, Housing, Diet, Temperature, `Wolbachia adjusted`, 
-             `Baseline reference`, Observations)%>% 
+      select(Reference, Description, `Trait guild`, No_lines_used, Age, Housing, Diet, Temperature, `Wolbachia adjusted`, 
+             `Baseline reference`)%>% 
       distinct(Description, .keep_all = TRUE)
     meta_info
   }, class = 'cell-border stripe', rownames = FALSE, 
