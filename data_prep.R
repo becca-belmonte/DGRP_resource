@@ -1,11 +1,12 @@
 library(tidyverse)
 
 meta_data <- read.csv("Z:/Data/DGRP_resource/DGRP_resource/DGRP QTC literature.search_20220411.csv", na.strings = "") %>%
-  filter(Status == "have") %>%
+  filter(Status == "have" | Status == "don't") %>%
   select(-Status, -Status.rationale, -Notes, -Data.type, -Trait.s, -Guild.s, -Data.type.1, -Sample.Size..per.sex.if.applic.)
 unscaled_data <- read.csv("Z:/Data/DGRP_resource/DGRP_resource/all.dgrp.phenos_unscaled_20220412.csv")
 SNP_heritability_cleaned <- read.csv("Z:/Data/DGRP_resource/DGRP_resource/SNP_heritability_cleaned.csv")
 SNP_heritability <- read.csv("Z:/Data/DGRP_resource/DGRP_resource/SNP_heritability.csv")
+gwas_hits <- read.csv("Z:/Data/DGRP_resource/DGRP_resource/gwas_hits_for_shiny_app.csv")
 filter_data <- unscaled_data %>% 
   filter(Reference %in% meta_data$Reference)
 
@@ -90,3 +91,6 @@ corr_p <- spearman_corr_p_values %>%
 corr_p <- corr_p %>% 
   mutate(Correlation = round(Correlation, 3)) %>% 
   mutate(p_val = round(p_val, 3))
+
+gwas_hits <- gwas_hits %>% 
+  filter(Trait %in% all_data$Trait_old)

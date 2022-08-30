@@ -12,6 +12,7 @@ library(kableExtra)
 dt <- readRDS("dt.RDS") 
 all_data <- readRDS("all_data.rds")
 corr_p <- readRDS("corr_p.rds")
+gwas_hits <- readRDS("gwas_hits.rds")
 trait_guilds <- as.list(sort(unique(all_data$`Trait guild`)))
 
 refs <- as.list(unique(all_data$Reference))
@@ -67,7 +68,8 @@ ui <- dashboardPage(skin = "black",
           tabPanel("Heritability Data",  DTOutput("herinfo")), 
           tabPanel("Strongest Correlations", DTOutput("corrinfo")),
           tabPanel("Publication Data", DTOutput("pubinfo")),
-          tabPanel("Experimental Conditions", DTOutput("metainfo"))))),
+          tabPanel("Experimental Conditions", DTOutput("metainfo")),
+          tabPanel("GWAS Data", DTOutput("gwasdata"))))),
     tabItem(
       tabName = "correlations",
       fluidRow(box(plotlyOutput("corr"), width = 6), box(DTOutput("corrtable"), width = 6))
@@ -485,6 +487,65 @@ server <- function(input, output) {
     dom = 'lBfrtip',
     buttons = c('copy', 'csv', 'excel')
   ))
+  
+  output$gwasdata <- renderDT({
+    {if(is.null(input$trait) & is.null(input$study) & is.null(input$trait_spec)) data_table <- dt  else
+      if(is.null(input$trait) & is.null(input$study)) data_table <- dt %>% 
+          filter(Trait %in% input$trait_spec) else
+            if(is.null(input$study) & is.null(input$trait_spec)) data_table <- dt %>% 
+                filter(`Trait guild` %in% input$trait) else
+                  if(is.null(input$trait) & is.null(input$trait_spec)) data_table <- dt %>% 
+                      filter(Reference %in% input$study) else
+                        if(is.null(input$study) & is.null(input$trait_spec)) data_table <- dt %>% 
+                            filter(`Trait guild` %in% input$trait) else
+                              if(is.null(input$trait_spec)) data_table <- dt %>% 
+                                  filter(Reference %in% input$study) %>% 
+                                  filter(`Trait guild` %in% input$trait) else
+                                    if(is.null(input$trait)) data_table <- dt %>% 
+                                        filter(Reference %in% input$study) %>% 
+                                        filter(Trait %in% input$trait_spec) else
+                                          if(is.null(input$study)) data_table <- dt %>% 
+                                              filter(`Trait guild` %in% input$trait) %>% 
+                                              filter(Trait %in% input$trait_spec) else
+                                                data_table <- dt %>% 
+                                                  filter(Reference %in% input$study) %>% 
+                                                  filter(`Trait guild` %in% input$trait) %>% 
+                                                  filter(Trait %in% trait_spec)}
+    row <- input$table_cell_clicked$row
+    selected_row <- data_table[row,]
+    selected_trait <- selected_row$Trait 
+    filter_corr <- all_data %>% 
+      filter(Trait %in% selected_trait)
+    
+    filter_data <- all_data %>% 
+      filter(Trait %in% selected_trait)
+    
+    gwas <- gwas_hits_for_shiny_app %>% 
+      filter(Trait %in% filter_data$Trait_old)
+    
+    old_to_new <- all_data %>% 
+      select(Trait, Trait_old, Reference, Sex) %>% 
+      distinct(Trait_old, Trait, Reference, Sex)
+    
+    
+    gwas$Reference <- old_to_new$Reference[match(gwas$Trait, old_to_new$Trait_old)]
+    gwas$Sex <- old_to_new$Sex[match(gwas$Trait, old_to_new$Trait_old)]
+    gwas$Trait <- old_to_new$Trait[match(gwas$Trait, old_to_new$Trait_old)]
+    
+    gwas <- gwas %>% 
+      select(Trait, Reference, Sex, Variant, Beta, SE, P)
+    return(gwas)
+  }, class = 'cell-border stripe', rownames = FALSE, 
+  
+  extensions = 'Buttons',
+  
+  options = list(
+    scrollX = TRUE,
+    dom = 'lBfrtip',
+    buttons = c('copy', 'csv', 'excel')
+  ))
+  
+  
   
   output$corrtable <- renderDT({
     if(is.null(input$trait) & is.null(input$trait_spec)){filter_corr <- all_data%>% 
