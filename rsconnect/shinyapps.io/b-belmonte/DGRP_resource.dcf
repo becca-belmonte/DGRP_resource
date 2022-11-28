@@ -5,9 +5,9 @@ account: b-belmonte
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 6803674
-bundleId: 6225566
+bundleId: 6562282
 url: https://b-belmonte.shinyapps.io/DGRP_resource/
-when: 1661175106.35064
-lastSyncTime: 1661175106.35065
+when: 1669638425.12246
+lastSyncTime: 1669638425.12247
 asMultiple: FALSE
 asStatic: FALSE

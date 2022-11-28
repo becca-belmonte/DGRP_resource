@@ -8,11 +8,12 @@ library(psych)
 library(tidyverse)
 library(spsComps)
 library(kableExtra)
+library(fontawesome)
 
 dt <- readRDS("dt.RDS") 
 all_data <- readRDS("all_data.rds")
 corr_p <- readRDS("corr_p.rds")
-gwas_hits <- readRDS("gwas_hits.rds")
+gwas_hits <- readRDS("new_gwas_hits.rds")
 trait_guilds <- as.list(sort(unique(all_data$`Trait guild`)))
 
 refs <- as.list(unique(all_data$Reference))
@@ -36,15 +37,15 @@ ui <- dashboardPage(skin = "black",
                                  from = "Project in Github",
                                  message = "Documentation, Source, Citation",
                                  href = "https://github.com/becca-belmonte/DGRP_resource",
-                                 icon = icon("fa-brands fa-github")
+                                 icon = icon("github")
                                ),
                                messageItem(
                                  from = "Link to Paper",
                                  message = "here is our paper",
                                  href = "https://onlinelibrary.wiley.com/",
-                                 icon = icon("fa-thin fa-file")
+                                 icon = icon("file")
                                ),
-                               icon = icon("fa-thin fa-link"),
+                               icon = icon("link"),
                                headerText = "External links")),
   dashboardSidebar(
     sidebarMenu(
@@ -520,20 +521,20 @@ server <- function(input, output) {
     filter_data <- all_data %>% 
       filter(Trait %in% selected_trait)
     
-    gwas <- gwas_hits_for_shiny_app %>% 
-      filter(Trait %in% filter_data$Trait_old)
+    gwas <- gwas_hits %>% 
+      filter(trait %in% filter_data$Trait_old)
     
     old_to_new <- all_data %>% 
       select(Trait, Trait_old, Reference, Sex) %>% 
       distinct(Trait_old, Trait, Reference, Sex)
     
     
-    gwas$Reference <- old_to_new$Reference[match(gwas$Trait, old_to_new$Trait_old)]
-    gwas$Sex <- old_to_new$Sex[match(gwas$Trait, old_to_new$Trait_old)]
-    gwas$Trait <- old_to_new$Trait[match(gwas$Trait, old_to_new$Trait_old)]
+    gwas$Reference <- old_to_new$Reference[match(gwas$trait, old_to_new$Trait_old)]
+    gwas$Sex <- old_to_new$Sex[match(gwas$trait, old_to_new$Trait_old)]
+    gwas$Trait <- old_to_new$Trait[match(gwas$trait, old_to_new$Trait_old)]
     
     gwas <- gwas %>% 
-      select(Trait, Reference, Sex, Variant, Beta, SE, P)
+      select(Trait, Reference, Sex, SNP, FBID, gene_name, site_class, distance_to_gene, MAF, minor_allele, major_allele, BETA, SE, P, log10_P)
     return(gwas)
   }, class = 'cell-border stripe', rownames = FALSE, 
   
