@@ -44,7 +44,7 @@ all_data <- all_data %>%
 # making dt file
 dt <- all_data  %>% 
   select(-line, -trait_value, -`V(G)`, -`V(E)`, -`V(P)`, -`V(G)/V(P)`, -`SE V(G)`, -`SE V(E)`, -`SE V(P)`, -`SE V(G)/V(P)`) %>% 
-  distinct(Trait, .keep_all = TRUE) %>% 
+  distinct(Trait, Sex, Reference, .keep_all = TRUE) %>% 
   ungroup() %>% 
   select(`Trait guild`, Trait, Sex, Description, Reference, Title, `Full Text URL`)
 

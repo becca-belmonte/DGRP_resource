@@ -64,7 +64,10 @@ ui <- dashboardPage(skin = "black",
                         placement = "bottom",
                         trigger = "hover"
               ),h3(textOutput("instruct"), align = "center"), DTOutput("table"), width = 6),
-    box(h3(textOutput("selection"), align = "center"), plotlyOutput("barchart"), width = 6), 
+    box(h3(textOutput("selection"), align = "center"), width = 6), 
+    tabBox(width = 6,
+           tabPanel("Trait value graph", plotlyOutput("barchart")),
+           tabPanel("Manhattan plot", imageOutput("manhattan"))),
         tabBox(width = 6,
           tabPanel("Heritability Data",  DTOutput("herinfo")), 
           tabPanel("Strongest Correlations", DTOutput("corrinfo")),
@@ -118,7 +121,7 @@ ui <- dashboardPage(skin = "black",
 
 
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   output$menu <- renderMenu({
     sidebarMenu(
       menuItem("Info about Traits", tabName = "traits"),
@@ -297,6 +300,52 @@ server <- function(input, output) {
                theme(legend.position='none'), tooltip = c("trait_value", "text"))} else
                  ggplotly(ggplot(all_data, aes(x = line, y = trait_value)), tooltip = c("trait_value", "text"))
   })
+  
+  output$manhattan <- renderImage({
+    {if(is.null(input$trait) & is.null(input$study) & is.null(input$trait_spec)) data_table <- dt  else
+      if(is.null(input$trait) & is.null(input$study)) data_table <- dt %>% 
+          filter(Trait %in% input$trait_spec) else
+            if(is.null(input$study) & is.null(input$trait_spec)) data_table <- dt %>% 
+                filter(`Trait guild` %in% input$trait) else
+                  if(is.null(input$trait) & is.null(input$trait_spec)) data_table <- dt %>% 
+                      filter(Reference %in% input$study) else
+                        if(is.null(input$study) & is.null(input$trait_spec)) data_table <- dt %>% 
+                            filter(`Trait guild` %in% input$trait) else
+                              if(is.null(input$trait_spec)) data_table <- dt %>% 
+                                  filter(Reference %in% input$study) %>% 
+                                  filter(`Trait guild` %in% input$trait) else
+                                    if(is.null(input$trait)) data_table <- dt %>% 
+                                        filter(Reference %in% input$study) %>% 
+                                        filter(Trait %in% input$trait_spec) else
+                                          if(is.null(input$study)) data_table <- dt %>% 
+                                              filter(`Trait guild` %in% input$trait) %>% 
+                                              filter(Trait %in% input$trait_spec) else
+                                                data_table <- dt %>% 
+                                                  filter(Reference %in% input$study) %>% 
+                                                  filter(`Trait guild` %in% input$trait) %>% 
+                                                  filter(Trait %in% trait_spec)}
+    row <- input$table_cell_clicked$row
+    selected_row <- data_table[row,]
+    selected_trait <- selected_row$Trait
+    selected_sex <- selected_row$Sex
+    selected_study <- selected_row$Reference
+    
+    filter_data <- all_data %>% 
+      filter(Trait %in% selected_trait & Sex %in% selected_sex & Reference %in% selected_study)
+    
+    old_trait_name <- unique(filter_data$Trait_old)
+    
+    width  <- (session$clientData$output_manhattan_width)
+    height <- (session$clientData$output_manhattan_height)
+    
+    filename <- normalizePath(file.path('./', paste(old_trait_name, '.jpeg', sep = "")))
+    
+    list(src = filename,
+         width = (height),
+         height = (height),
+         alt = paste("Trait:", selected_trait))
+  }, deleteFile = FALSE)
+  
   
   output$pubinfo <- renderDT({
     {if(is.null(input$trait) & is.null(input$study) & is.null(input$trait_spec)) data_table <- dt  else
@@ -515,8 +564,6 @@ server <- function(input, output) {
     row <- input$table_cell_clicked$row
     selected_row <- data_table[row,]
     selected_trait <- selected_row$Trait 
-    filter_corr <- all_data %>% 
-      filter(Trait %in% selected_trait)
     
     filter_data <- all_data %>% 
       filter(Trait %in% selected_trait)
