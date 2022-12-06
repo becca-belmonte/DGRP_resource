@@ -10,14 +10,15 @@ library(spsComps)
 library(kableExtra)
 library(fontawesome)
 
-dt <- readRDS("dt.RDS") 
-all_data <- readRDS("all_data.rds")
-corr_p <- readRDS("corr_p.rds")
-gwas_hits <- readRDS("new_gwas_hits.rds")
+dt <- readRDS("app_data/dt.RDS") 
+all_data <- readRDS("app_data/all_data.rds")
+corr_p <- readRDS("app_data/corr_p.rds")
+gwas_hits <- readRDS("app_data/gwas_hits.rds")
+herit_info <- readRDS("app_data/heritability.rds")
+pub_info <- readRDS("app_data/pub_info.rds")
+meta_info <- readRDS("app_data/meta_info.rds")
 trait_guilds <- as.list(sort(unique(all_data$`Trait guild`)))
-
 refs <- as.list(unique(all_data$Reference))
-
 sex <- as.list(unique(all_data$Sex))
 
 infoBtn <- function(id) {
@@ -41,7 +42,7 @@ ui <- dashboardPage(skin = "black",
                                ),
                                messageItem(
                                  from = "Link to Paper",
-                                 message = "here is our paper",
+                                 message = "Here is the associated paper",
                                  href = "https://onlinelibrary.wiley.com/",
                                  icon = icon("file")
                                ),
@@ -60,7 +61,7 @@ ui <- dashboardPage(skin = "black",
         box(infoBtn('workingPop') %>%
               bsPopover(title = "Filtering traits",
                         content = "Use the selection tools on the left sidebar to limit your results based on the general category they belong to or the originial paper they came
-                from. Or if you have one trait in mind, select that from the middle selection tool.",
+                from. Or, if you have a particular trait in mind, select that from the middle selection tool.",
                         placement = "bottom",
                         trigger = "hover"
               ),h3(textOutput("instruct"), align = "center"), DTOutput("table"), width = 6),
@@ -85,7 +86,7 @@ ui <- dashboardPage(skin = "black",
         tabPanel("Info about traits",
           h4("In this tab you can go into depth to learn more about one specific trait."), 
           h4("- Use the selection tools at the top to limit your results based on the general category they belong to or the originial paper they came
-                from. Or if you have one trait in mind, select that from the middle selection tool."), 
+                from. Or, if you have one trait in mind, select that from the middle selection tool."), 
           h4("- You will then see the general information associated with the traits you selected, such as its associated group
                 and its original source."),
           h4("- If you then click on one of those traits, you can scroll down to see the DGRP lines ranked according to that trait."),
@@ -188,8 +189,8 @@ server <- function(input, output) {
   
   
   output$table <- renderDT({
-    dt <- dt %>% 
-      select(-Title, -`Full Text URL`)
+    # dt <- dt %>% 
+    #   select(-Title, -`Full Text URL`)
     {if(is.null(input$trait) & is.null(input$study) & is.null(input$trait_spec)) data_table <- dt  else
       if(is.null(input$trait) & is.null(input$study)) data_table <- dt %>% 
         filter(Trait %in% input$trait_spec) else
@@ -325,11 +326,11 @@ server <- function(input, output) {
     selected_row <- data_table[row,]
     selected_trait <- selected_row$Trait 
     selected_sex <- selected_row$Sex
-    pub_info <- all_data %>% 
-      filter(Trait %in% selected_trait)  %>% 
-      ungroup() %>% 
-      select(Reference, Authors, Title, Year, `Full Text URL`)%>% 
-      distinct(Reference, .keep_all = TRUE)
+    
+    pub_info <- pub_info %>% 
+      filter(Trait %in% selected_trait) %>% 
+      select(-Trait, -Reference)
+    
     pub_info
   }, class = 'cell-border stripe', rownames = FALSE, 
   
@@ -368,12 +369,10 @@ server <- function(input, output) {
     row <- input$table_cell_clicked$row
     selected_row <- data_table[row,]
     selected_trait <- selected_row$Trait 
-    meta_info <- all_data %>% 
-      filter(Trait %in% selected_trait)  %>% 
-      ungroup() %>% 
-      select(Reference, Description, `Trait guild`, No_lines_used, Age, Housing, Diet, Temperature, `Wolbachia adjusted`, 
-             `Baseline reference`)%>% 
-      distinct(Description, .keep_all = TRUE)
+    meta_info <- meta_info %>% 
+      filter(Trait %in% selected_trait) %>% 
+      select(-Trait, -Reference)
+    
     meta_info
   }, class = 'cell-border stripe', rownames = FALSE, 
   
@@ -412,11 +411,11 @@ server <- function(input, output) {
     row <- input$table_cell_clicked$row
     selected_row <- data_table[row,]
     selected_trait <- selected_row$Trait 
-    her_info <- all_data %>% 
+    
+    her_info <- herit_info %>% 
       filter(Trait %in% selected_trait)  %>% 
-      ungroup() %>% 
-      select(Reference, Sex, `V(G)`, `V(E)`, `V(P)`, `V(G)/V(P)`, `SE V(G)`, `SE V(E)`, `SE V(P)`, `SE V(G)/V(P)`)%>% 
-      distinct(`V(G)`, .keep_all = TRUE)
+      select(-Trait)
+    
   }, class = 'cell-border stripe', rownames = FALSE, 
   
   extensions = 'Buttons',
@@ -518,24 +517,24 @@ server <- function(input, output) {
     filter_corr <- all_data %>% 
       filter(Trait %in% selected_trait)
     
-    filter_data <- all_data %>% 
-      filter(Trait %in% selected_trait)
+    gwas_hits <- gwas_hits %>% select(-Trait, -Reference, -Sex)
     
-    gwas <- gwas_hits %>% 
-      filter(trait %in% filter_data$Trait_old)
+    # filter_data <- all_data %>% 
+    #   filter(Trait %in% selected_trait)
+    # 
+    # gwas <- gwas_hits %>% 
+    #   filter(Trait %in% filter_data$Trait_old)
+    # 
+    # old_to_new <- all_data %>% 
+    #   select(Trait, Trait_old, Reference, Sex) %>% 
+    #   distinct(Trait_old, Trait, Reference, Sex)
+    # 
+    # 
+    # gwas$Reference <- old_to_new$Reference[match(gwas$Trait, old_to_new$Trait_old)]
+    # gwas$Sex <- old_to_new$Sex[match(gwas$Trait, old_to_new$Trait_old)]
+    # gwas$Trait <- old_to_new$Trait[match(gwas$Trait, old_to_new$Trait_old)]
     
-    old_to_new <- all_data %>% 
-      select(Trait, Trait_old, Reference, Sex) %>% 
-      distinct(Trait_old, Trait, Reference, Sex)
-    
-    
-    gwas$Reference <- old_to_new$Reference[match(gwas$trait, old_to_new$Trait_old)]
-    gwas$Sex <- old_to_new$Sex[match(gwas$trait, old_to_new$Trait_old)]
-    gwas$Trait <- old_to_new$Trait[match(gwas$trait, old_to_new$Trait_old)]
-    
-    gwas <- gwas %>% 
-      select(Trait, Reference, Sex, SNP, FBID, gene_name, site_class, distance_to_gene, MAF, minor_allele, major_allele, BETA, SE, P, log10_P)
-    return(gwas)
+    return(gwas_hits)
   }, class = 'cell-border stripe', rownames = FALSE, 
   
   extensions = 'Buttons',
