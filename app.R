@@ -14,6 +14,7 @@ dt <- readRDS("app_data/dt.RDS")
 line_means <- readRDS("app_data/line_means.rds") 
 corr_p <- readRDS("app_data/corr_p.rds")
 gwas_hits <- readRDS("app_data/gwas_hits.rds") 
+gwas_summary <- readRDS("app_data/gwas_summary.rds")
 herit_info <- readRDS("app_data/heritability.rds")
 pub_info <- readRDS("app_data/pub_info.rds") 
 trait_guilds <- as.list(sort(unique(dt$`Trait guild`)))
@@ -75,7 +76,9 @@ ui <- dashboardPage(skin = "black",
           tabPanel("Strongest Correlations", DTOutput("corrinfo")),
           tabPanel("Publication Data", DTOutput("pubinfo")),
           tabPanel("Experimental Conditions", DTOutput("metainfo")),
-          tabPanel("GWAS Hits", DTOutput("gwasdata"))))),
+          tabPanel("GWAS Hits", DTOutput("gwashits")),
+          tabPanel("GWAS Summary", DTOutput("gwassummary"))
+          ))),
     tabItem(
       tabName = "correlations",
       fluidRow(box(plotlyOutput("corr"), width = 6), box(DTOutput("corrtable"), width = 6))
@@ -321,13 +324,18 @@ server <- function(input, output, session) {
           scale_fill_viridis_d() + 
           theme_bw() +
           theme(axis.text.x = element_blank(),
-                axis.ticks.x = element_blank()) +
+                axis.ticks.x = element_blank(),
+                panel.grid.major.x = element_blank(),
+                panel.grid.minor.x = element_blank()) +
           theme(legend.position = "none"), 
         
         tooltip = c("Trait value", "text"))} else
           ggplotly( 
             ggplot(line_means[1,], aes(x = line, y = trait_value)) +
-              theme(axis.text = element_blank(), axis.ticks = element_blank()) +
+              theme_bw() +
+              theme(axis.text = element_blank(), axis.ticks = element_blank(),
+                    panel.grid.major = element_blank(),
+                    panel.grid.minor = element_blank()) +
               xlab("DGRP line")  +
               ylab("Trait value")
           )
@@ -358,11 +366,15 @@ server <- function(input, output, session) {
                                                   filter(Trait %in% trait_spec)}
     
     selected_trait <- data_table[input$table_cell_clicked$row,]$Trait_ID 
+    
+    if(length(selected_trait) != 0) {
+      filename <- normalizePath(file.path('./app_data/Manhattan plots/', paste(selected_trait, '.jpeg', sep = "")))  
+    } else filename <- normalizePath(file.path('./app_data/blank_manhattan.jpeg'))
+    
+    if(!file.exists(filename)) filename <-  normalizePath(file.path('./app_data/blank_manhattan.jpeg'))
+    
     width  <- (session$clientData$output_manhattan_width)
     height <- (session$clientData$output_manhattan_height)
-    filename <- normalizePath(file.path('./app_data/Manhattan plots/', paste(selected_trait, '.jpeg', sep = "")))  
-    
-    if(!file.exists(filename)) return(NA)
     
     list(src = filename,
          width = width,
@@ -566,7 +578,7 @@ server <- function(input, output, session) {
     buttons = c('copy', 'csv', 'excel')
   ))
   
-  output$gwasdata <- renderDT({
+  output$gwashits <- renderDT({
     {if(is.null(input$trait) & is.null(input$study) & is.null(input$trait_spec)) data_table <- dt  else
       if(is.null(input$trait) & is.null(input$study)) data_table <- dt %>% 
           filter(Trait %in% input$trait_spec) else
@@ -608,6 +620,53 @@ server <- function(input, output, session) {
     dom = 'lBfrtip',
     buttons = c('copy', 'csv', 'excel')
   ))
+  
+  
+  
+  output$gwassummary <- renderDT({
+    {if(is.null(input$trait) & is.null(input$study) & is.null(input$trait_spec)) data_table <- dt  else
+      if(is.null(input$trait) & is.null(input$study)) data_table <- dt %>% 
+          filter(Trait %in% input$trait_spec) else
+            if(is.null(input$study) & is.null(input$trait_spec)) data_table <- dt %>% 
+                filter(`Trait guild` %in% input$trait) else
+                  if(is.null(input$trait) & is.null(input$trait_spec)) data_table <- dt %>% 
+                      filter(Reference %in% input$study) else
+                        if(is.null(input$study) & is.null(input$trait_spec)) data_table <- dt %>% 
+                            filter(`Trait guild` %in% input$trait) else
+                              if(is.null(input$trait_spec)) data_table <- dt %>% 
+                                  filter(Reference %in% input$study) %>% 
+                                  filter(`Trait guild` %in% input$trait) else
+                                    if(is.null(input$trait)) data_table <- dt %>% 
+                                        filter(Reference %in% input$study) %>% 
+                                        filter(Trait %in% input$trait_spec) else
+                                          if(is.null(input$study)) data_table <- dt %>% 
+                                              filter(`Trait guild` %in% input$trait) %>% 
+                                              filter(Trait %in% input$trait_spec) else
+                                                data_table <- dt %>% 
+                                                  filter(Reference %in% input$study) %>% 
+                                                  filter(`Trait guild` %in% input$trait) %>% 
+                                                  filter(Trait %in% trait_spec)}
+    
+    row <- input$table_cell_clicked$row
+    if(length(row) == 0) return(no_trait_selected_table)
+    
+    gwas_summary <- gwas_summary %>% 
+      filter(Trait_ID %in% data_table[row, ]$Trait_ID) %>% 
+      select(-Trait_ID)
+    
+    if(nrow(gwas_summary) == 0) gwas_summary <- no_data_table
+    gwas_summary 
+    
+  }, class = 'cell-border stripe', rownames = FALSE, 
+  
+  extensions = 'Buttons',
+  
+  options = list(
+    scrollX = TRUE,
+    dom = 'lBfrtip',
+    buttons = c('copy', 'csv', 'excel')
+  )
+  )
   
   
   

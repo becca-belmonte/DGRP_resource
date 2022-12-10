@@ -119,7 +119,9 @@ gwas_hits <- gwas_hits %>%
 gwas_summary <- gwas_hits %>% 
   mutate(Chromosome = map_chr(str_split(Variant, "_"), ~ .x[1])) %>% 
   group_by(Trait_ID, Chromosome) %>% 
-  summarise(n = n()) %>% arrange(-n)
+  summarise(`Number of variants with p < 1e-5` = n(), 
+            `Number of variants with p < 1e-8` = sum(P < 1e-8), 
+            .groups = "drop") 
 
 ###############################################################
 # making corr_p file (should be reworked to use the data from the main paper scripts, this works fine for now)
