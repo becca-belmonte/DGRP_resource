@@ -11,15 +11,16 @@ library(kableExtra)
 library(fontawesome)
 
 dt <- readRDS("app_data/dt.RDS") 
-all_data <- readRDS("app_data/all_data.rds")
+line_means <- readRDS("app_data/line_means.rds") 
 corr_p <- readRDS("app_data/corr_p.rds")
-gwas_hits <- readRDS("app_data/gwas_hits.rds")
+gwas_hits <- readRDS("app_data/gwas_hits.rds") 
 herit_info <- readRDS("app_data/heritability.rds")
-pub_info <- readRDS("app_data/pub_info.rds")
-meta_info <- readRDS("app_data/meta_info.rds")
-trait_guilds <- as.list(sort(unique(all_data$`Trait guild`)))
-refs <- as.list(unique(all_data$Reference))
-sex <- as.list(unique(all_data$Sex))
+pub_info <- readRDS("app_data/pub_info.rds") 
+trait_guilds <- as.list(sort(unique(dt$`Trait guild`)))
+refs <- as.list(unique(dt$Reference))
+sex <- as.list(unique(dt$Sex))
+no_trait_selected_table <- tibble(` `= "Select a trait to view data about it.")
+no_data_table <- tibble(` `= "No data available for this trait.")
 
 infoBtn <- function(id) {
   actionButton(id,
@@ -65,13 +66,16 @@ ui <- dashboardPage(skin = "black",
                         placement = "bottom",
                         trigger = "hover"
               ),h3(textOutput("instruct"), align = "center"), DTOutput("table"), width = 6),
-    box(h3(textOutput("selection"), align = "center"), plotlyOutput("barchart"), width = 6), 
+    box(h3(textOutput("selection"), align = "center"), width = 6), 
+    tabBox(width = 6,
+           tabPanel("Trait value graph", plotlyOutput("barchart")),
+           tabPanel("Manhattan plot", imageOutput("manhattan"))),
         tabBox(width = 6,
           tabPanel("Heritability Data",  DTOutput("herinfo")), 
           tabPanel("Strongest Correlations", DTOutput("corrinfo")),
           tabPanel("Publication Data", DTOutput("pubinfo")),
           tabPanel("Experimental Conditions", DTOutput("metainfo")),
-          tabPanel("GWAS Data", DTOutput("gwasdata"))))),
+          tabPanel("GWAS Hits", DTOutput("gwasdata"))))),
     tabItem(
       tabName = "correlations",
       fluidRow(box(plotlyOutput("corr"), width = 6), box(DTOutput("corrtable"), width = 6))
@@ -84,17 +88,13 @@ ui <- dashboardPage(skin = "black",
       tabName = "howto",
       tabBox(
         tabPanel("Info about traits",
-          h4("In this tab you can go into depth to learn more about one specific trait."), 
-          h4("- Use the selection tools at the top to limit your results based on the general category they belong to or the originial paper they came
-                from. Or, if you have one trait in mind, select that from the middle selection tool."), 
-          h4("- You will then see the general information associated with the traits you selected, such as its associated group
-                and its original source."),
-          h4("- If you then click on one of those traits, you can scroll down to see the DGRP lines ranked according to that trait."),
-          h4("- Hover over this graph to find specific lines in the ranking."),
-          h4("- Scrolling down further, you can see information about the original publication, the experimental conditions, and calculated heritibality."),
-          h4("- At the bottom you will see other traits that most strongly positively
-                or negatively correlate with your selected trait."),
-          h4("- If you are interested in exporting any of these data, click copy, csv, or excel, above the table you would like to export.")),
+          h4("This tab displays a wealth of information about a trait that you have selected."), 
+          h4("The interactive table in the centre shows a list of over 2000 traits in the database."), 
+          h4("Use the 'Select' bars to the left, or the search function above the central table, to explore the list of measured traits in this database, then click a trait that interests you."), 
+          h4("The bar chart shows the estimated mean trait value for each DGRP line. The plot will show males and females separately, if line means were estimated for both sexes in the same study. Hover over this graph to see information about each bar."),
+          h4("In the tabs in the lower right, you can view various tables. The heritability table shows COMPLETE THIS INFO. The 'Strongest correlations' table shows COMPLETE THIS INFO. The 'Publication data' gives a link to the source for this set of measurements, and a complete citation. The 'Experimental conditions' table shows COMPLETE THIS INFO. Finally, the 'GWAS hits' table shows a list of all the variants with a p-value below 1e-5 for the selected trait (see our publication for information on the GWAS methods), alongside information on each of these variants such as the site class of the variant, any genes it is inside/near, information on its major and minor alleles, and the GWAS summary statistics from PLINK. Note that some variants are associated with multiple genes and site classes, and so there may be more rows in table than there are significant GWAS hits."),
+
+          h4("You can use the buttons marked Copy/CSV/Excel to save or export any of these data")),
       tabPanel("Correlations",
           h4("On this tab you can learn more about how different traits relate to each other."),
           h4("- To begin with you will see a correlation matrix of all traits."),
@@ -119,7 +119,7 @@ ui <- dashboardPage(skin = "black",
 
 
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   output$menu <- renderMenu({
     sidebarMenu(
       menuItem("Info about Traits", tabName = "traits"),
@@ -133,8 +133,8 @@ server <- function(input, output) {
                               choices = trait_guilds,
                               multiple = TRUE)),
       menuItem(renderUI({
-        if(is.null(input$trait)){spec_trait <- as.list(unique(all_data$Trait))} else
-        {spec_trait <- all_data %>% 
+        if(is.null(input$trait)){spec_trait <- as.list(unique(dt$Trait))} else
+        {spec_trait <- dt %>% 
           filter(`Trait guild` %in% input$trait)
         spec_trait <- as.list(unique(spec_trait$Trait))}
         selectizeInput("trait_spec", 
@@ -143,8 +143,8 @@ server <- function(input, output) {
                        multiple = TRUE)
       })   ),
       menuItem(renderUI({
-        if(is.null(input$trait)){study <- as.list(unique(all_data$Reference))} else
-        {study <- all_data %>% 
+        if(is.null(input$trait)){study <- as.list(unique(dt$Reference))} else
+        {study <- dt %>% 
           filter(`Trait guild` %in% input$trait)
         study <- as.list(unique(study$Reference))}
         selectizeInput("study", 
@@ -182,38 +182,38 @@ server <- function(input, output) {
     selected_row <- data_table[row,]
     selected_trait <- selected_row$Trait        
     if(length(selected_trait)>0) print("") else
-      print("To learn more about a specific trait, please click on it in the below table")
+      print("Click on a trait in the table below to view more information about it")
   }
   
   )
   
   
   output$table <- renderDT({
-    # dt <- dt %>% 
-    #   select(-Title, -`Full Text URL`)
     {if(is.null(input$trait) & is.null(input$study) & is.null(input$trait_spec)) data_table <- dt  else
       if(is.null(input$trait) & is.null(input$study)) data_table <- dt %>% 
-        filter(Trait %in% input$trait_spec) else
-          if(is.null(input$study) & is.null(input$trait_spec)) data_table <- dt %>% 
-        filter(`Trait guild` %in% input$trait) else
-          if(is.null(input$trait) & is.null(input$trait_spec)) data_table <- dt %>% 
-        filter(Reference %in% input$study) else
-          if(is.null(input$study) & is.null(input$trait_spec)) data_table <- dt %>% 
-        filter(`Trait guild` %in% input$trait) else
-          if(is.null(input$trait_spec)) data_table <- dt %>% 
-        filter(Reference %in% input$study) %>% 
-        filter(`Trait guild` %in% input$trait) else
-          if(is.null(input$trait)) data_table <- dt %>% 
-        filter(Reference %in% input$study) %>% 
-        filter(Trait %in% input$trait_spec) else
-          if(is.null(input$study)) data_table <- dt %>% 
-        filter(`Trait guild` %in% input$trait) %>% 
-        filter(Trait %in% input$trait_spec) else
-          data_table <- dt %>% 
-        filter(Reference %in% input$study) %>% 
-        filter(`Trait guild` %in% input$trait) %>% 
-        filter(Trait %in% trait_spec)}
-    return(data_table)
+          filter(Trait %in% input$trait_spec) else
+            if(is.null(input$study) & is.null(input$trait_spec)) data_table <- dt %>% 
+                filter(`Trait guild` %in% input$trait) else
+                  if(is.null(input$trait) & is.null(input$trait_spec)) data_table <- dt %>% 
+                      filter(Reference %in% input$study) else
+                        if(is.null(input$study) & is.null(input$trait_spec)) data_table <- dt %>% 
+                            filter(`Trait guild` %in% input$trait) else
+                              if(is.null(input$trait_spec)) data_table <- dt %>% 
+                                  filter(Reference %in% input$study) %>% 
+                                  filter(`Trait guild` %in% input$trait) else
+                                    if(is.null(input$trait)) data_table <- dt %>% 
+                                        filter(Reference %in% input$study) %>% 
+                                        filter(Trait %in% input$trait_spec) else
+                                          if(is.null(input$study)) data_table <- dt %>% 
+                                              filter(`Trait guild` %in% input$trait) %>% 
+                                              filter(Trait %in% input$trait_spec) else
+                                                data_table <- dt %>% 
+                                                  filter(Reference %in% input$study) %>% 
+                                                  filter(`Trait guild` %in% input$trait) %>% 
+                                                  filter(Trait %in% trait_spec)}
+    
+    select(data_table, `Trait guild`, Trait, Sex, Description, Reference)
+    
   }, class = 'cell-border stripe', rownames = FALSE, 
   selection = 'single',
   
@@ -253,9 +253,11 @@ server <- function(input, output) {
     selected_row <- data_table[row,]
     selected_trait <- selected_row$Trait
     selected_sex <- selected_row$Sex
-    if(length(selected_trait)>0) print(c("You have selected ", selected_trait)) else
+    if(length(selected_trait) > 0) print(paste("You have selected: ", selected_trait, " (", selected_sex, ")",  sep="")) else
       print("")
   })
+  
+  
   
   output$barchart <- renderPlotly({
     {if(is.null(input$trait) & is.null(input$study) & is.null(input$trait_spec)) data_table <- dt  else
@@ -280,24 +282,95 @@ server <- function(input, output) {
                                                   filter(Reference %in% input$study) %>% 
                                                   filter(`Trait guild` %in% input$trait) %>% 
                                                   filter(Trait %in% trait_spec)}
-    row <- input$table_cell_clicked$row
-    selected_row <- data_table[row,]
-    selected_trait <- selected_row$Trait
-    if(length(selected_trait)>0) {filter_data_trait <- all_data %>% 
-      filter(Trait %in% selected_trait)
-    roles <- function(x) sub("[^_]*_[^_]*_","",x )  
-    ggplotly(ggplot(cbind(filter_data_trait, V4=paste(filter_data_trait$Reference,filter_data_trait$Sex,filter_data_trait$line,sep="_")), aes(x=reorder(V4,trait_value), y=trait_value, text = paste("DGRP line:", line)) ) + 
-               geom_bar(stat = "identity", aes(fill = line)) +
-               facet_wrap(~paste(filter_data_trait$Sex, filter_data_trait$Reference, sep=": "), scales = "free_x") + 
-               xlab("DGRP line")  +
-               ylab("Trait value") +
-               scale_x_discrete(labels=roles)  +
-               scale_fill_viridis_c() +
-               theme_bw() +
-               theme(axis.text.x=element_blank()) +
-               theme(legend.position='none'), tooltip = c("trait_value", "text"))} else
-                 ggplotly(ggplot(all_data, aes(x = line, y = trait_value)), tooltip = c("trait_value", "text"))
+    
+    selected_row <- data_table[input$table_cell_clicked$row, ]
+    selected_trait <- selected_row$Trait_ID
+    selected_study <- selected_row$Reference
+    
+    if(length(selected_trait) > 0) {
+      
+      filter_data_trait <- line_means %>% 
+        filter(Trait_ID == selected_trait) %>% 
+        left_join(dt %>% select(Trait_ID, Trait, Sex, Reference) %>% filter(Trait_ID == selected_trait), by = "Trait_ID") %>% 
+        arrange(Sex, trait_value) %>% 
+        mutate(x_variable = paste(Sex, line, sep = "_"),
+               x_variable = factor(x_variable, unique(x_variable)),
+               facet_label = paste(Trait, " (", Sex, ")",  sep=""),
+               line = factor(line, unique(line)))
+      
+      min_value <- min(filter_data_trait$trait_value)
+      max_value <- max(filter_data_trait$trait_value)
+      range <- max_value - min_value
+      y_min <- min_value - 0.07 * range
+      y_max <- max_value + 0.07 * range
+      if(y_min < 0 & all(filter_data_trait$trait_value > 0)) y_min <- 0
+      filter_data_trait <- rename(filter_data_trait, `Trait value` = trait_value)
+
+      ggplotly(
+        ggplot(filter_data_trait,
+               aes(x = x_variable, 
+                   y = `Trait value`, 
+                   text = paste("Line ", line, "\n", Reference, sep = ""))) + 
+          geom_bar(stat = "identity", aes(fill = line)) +
+          facet_wrap(~ facet_label, 
+                     scales = "free_x") + 
+          scale_y_continuous(expand = c(0, 0)) +
+          coord_cartesian(ylim = c(y_min, y_max)) +
+          xlab("DGRP line")  +
+          ylab("Trait value") +
+          scale_fill_viridis_d() + 
+          theme_bw() +
+          theme(axis.text.x = element_blank(),
+                axis.ticks.x = element_blank()) +
+          theme(legend.position = "none"), 
+        
+        tooltip = c("Trait value", "text"))} else
+          ggplotly( 
+            ggplot(line_means[1,], aes(x = line, y = trait_value)) +
+              theme(axis.text = element_blank(), axis.ticks = element_blank()) +
+              xlab("DGRP line")  +
+              ylab("Trait value")
+          )
   })
+  
+  output$manhattan <- renderImage({
+    {if(is.null(input$trait) & is.null(input$study) & is.null(input$trait_spec)) data_table <- dt  else
+      if(is.null(input$trait) & is.null(input$study)) data_table <- dt %>% 
+          filter(Trait %in% input$trait_spec) else
+            if(is.null(input$study) & is.null(input$trait_spec)) data_table <- dt %>% 
+                filter(`Trait guild` %in% input$trait) else
+                  if(is.null(input$trait) & is.null(input$trait_spec)) data_table <- dt %>% 
+                      filter(Reference %in% input$study) else
+                        if(is.null(input$study) & is.null(input$trait_spec)) data_table <- dt %>% 
+                            filter(`Trait guild` %in% input$trait) else
+                              if(is.null(input$trait_spec)) data_table <- dt %>% 
+                                  filter(Reference %in% input$study) %>% 
+                                  filter(`Trait guild` %in% input$trait) else
+                                    if(is.null(input$trait)) data_table <- dt %>% 
+                                        filter(Reference %in% input$study) %>% 
+                                        filter(Trait %in% input$trait_spec) else
+                                          if(is.null(input$study)) data_table <- dt %>% 
+                                              filter(`Trait guild` %in% input$trait) %>% 
+                                              filter(Trait %in% input$trait_spec) else
+                                                data_table <- dt %>% 
+                                                  filter(Reference %in% input$study) %>% 
+                                                  filter(`Trait guild` %in% input$trait) %>% 
+                                                  filter(Trait %in% trait_spec)}
+    
+    selected_trait <- data_table[input$table_cell_clicked$row,]$Trait_ID 
+    width  <- (session$clientData$output_manhattan_width)
+    height <- (session$clientData$output_manhattan_height)
+    filename <- normalizePath(file.path('./app_data/Manhattan plots/', paste(selected_trait, '.jpeg', sep = "")))  
+    
+    if(!file.exists(filename)) return(NA)
+    
+    list(src = filename,
+         width = width,
+         height = height,
+         alt = paste("Trait:", selected_trait))
+
+  }, deleteFile = FALSE)
+  
   
   output$pubinfo <- renderDT({
     {if(is.null(input$trait) & is.null(input$study) & is.null(input$trait_spec)) data_table <- dt  else
@@ -322,16 +395,17 @@ server <- function(input, output) {
                                                   filter(Reference %in% input$study) %>% 
                                                   filter(`Trait guild` %in% input$trait) %>% 
                                                   filter(Trait %in% trait_spec)}
+    
     row <- input$table_cell_clicked$row
-    selected_row <- data_table[row,]
-    selected_trait <- selected_row$Trait 
-    selected_sex <- selected_row$Sex
+    if(length(row) == 0) return(no_trait_selected_table)
     
     pub_info <- pub_info %>% 
-      filter(Trait %in% selected_trait) %>% 
-      select(-Trait, -Reference)
+      filter(Reference %in% data_table[row, ]$Reference) %>% 
+      select(-Reference)
     
-    pub_info
+    if(nrow(pub_info) == 0) pub_info <- no_data_table
+    pub_info 
+
   }, class = 'cell-border stripe', rownames = FALSE, 
   
   extensions = 'Buttons',
@@ -366,14 +440,17 @@ server <- function(input, output) {
                                                   filter(Reference %in% input$study) %>% 
                                                   filter(`Trait guild` %in% input$trait) %>% 
                                                   filter(Trait %in% trait_spec)}
-    row <- input$table_cell_clicked$row
-    selected_row <- data_table[row,]
-    selected_trait <- selected_row$Trait 
-    meta_info <- meta_info %>% 
-      filter(Trait %in% selected_trait) %>% 
-      select(-Trait, -Reference)
     
-    meta_info
+    row <- input$table_cell_clicked$row
+    if(length(row) == 0) return(no_trait_selected_table)
+    
+    meta_info <- meta_info %>% 
+      filter(Trait_ID %in% data_table[row, ]$Trait_ID) %>% 
+      select(-Trait_ID, -Reference)
+    
+    if(nrow(meta_info) == 0) meta_info <- no_data_table
+    meta_info 
+
   }, class = 'cell-border stripe', rownames = FALSE, 
   
   extensions = 'Buttons',
@@ -408,13 +485,16 @@ server <- function(input, output) {
                                                   filter(Reference %in% input$study) %>% 
                                                   filter(`Trait guild` %in% input$trait) %>% 
                                                   filter(Trait %in% trait_spec)}
-    row <- input$table_cell_clicked$row
-    selected_row <- data_table[row,]
-    selected_trait <- selected_row$Trait 
     
-    her_info <- herit_info %>% 
-      filter(Trait %in% selected_trait)  %>% 
-      select(-Trait)
+    row <- input$table_cell_clicked$row
+    if(length(row) == 0) return(no_trait_selected_table)
+    
+    herit_info <- herit_info %>% 
+      filter(Trait_ID %in% data_table[row,]$Trait_ID)  %>% 
+      select(-Trait_ID)
+
+    if(nrow(herit_info) == 0) herit_info <- no_data_table
+    herit_info 
     
   }, class = 'cell-border stripe', rownames = FALSE, 
   
@@ -449,35 +529,33 @@ server <- function(input, output) {
                                                   filter(Reference %in% input$study) %>% 
                                                   filter(`Trait guild` %in% input$trait) %>% 
                                                   filter(Trait %in% trait_spec)}
+    
     row <- input$table_cell_clicked$row
-    selected_row <- data_table[row,]
-    selected_trait <- selected_row$Trait 
-    filter_corr <- all_data %>% 
-      filter(Trait %in% selected_trait)
+    if(length(row) == 0) return(no_trait_selected_table)
+    selected_trait <- data_table[row, ]$Trait_ID
     
     spec_corr <- corr_p %>% 
-      filter(trait %in% filter_corr$Trait_old | sec_trait %in% filter_corr$Trait_old) %>% 
+      filter(trait == selected_trait | sec_trait == selected_trait) %>% 
       filter(p_val < 0.05) %>% 
       arrange(desc(abs(Correlation))) %>% 
-      select(trait, sec_trait, p_val, Correlation)
+      rename(focal_trait = trait, nonfocal_trait = sec_trait) 
     
-    old_to_new <- all_data %>% 
-      select(Trait, Trait_old, Reference, Sex) %>% 
-      distinct(Trait_old, Trait, Reference, Sex)
+    to_swap <- which(spec_corr$focal_trait != selected_trait)
+    spec_corr$nonfocal_trait[to_swap] <- spec_corr$focal_trait[to_swap]
+    spec_corr$focal_trait[to_swap] <- selected_trait
+    
+    spec_corr <- 
+      left_join(spec_corr, select(dt, Trait, Trait_ID, Reference, Sex), 
+                by = c("nonfocal_trait" = "Trait_ID")) %>% 
+      mutate(Trait = paste(Trait, " (", Sex, ")",  sep = "")) %>% 
+      select(`Correlated trait` = Trait, 
+             `Reference for that trait` = Reference, 
+             Correlation, `p-value` = p_val)
     
     
-    spec_corr$first_reference <- old_to_new$Reference[match(spec_corr$trait, old_to_new$Trait_old)]
-    spec_corr$sec_reference <- old_to_new$Reference[match(spec_corr$sec_trait, old_to_new$Trait_old)]
-    spec_corr$first_sex <- old_to_new$Sex[match(spec_corr$trait, old_to_new$Trait_old)]
-    spec_corr$sec_sex <- old_to_new$Sex[match(spec_corr$sec_trait, old_to_new$Trait_old)]
-    spec_corr$trait <- old_to_new$Trait[match(spec_corr$trait, old_to_new$Trait_old)]
-    spec_corr$sec_trait <- old_to_new$Trait[match(spec_corr$sec_trait, old_to_new$Trait_old)]
+    if(nrow(spec_corr) == 0) spec_corr <- no_data_table
+    spec_corr    
     
-    spec_corr <- spec_corr %>% 
-      select(trait, first_reference, first_sex, sec_trait, sec_reference, sec_sex, p_val, Correlation)
-    
-    colnames(spec_corr) <- c("Trait #1", "Reference #1", "Sex #1", "Trait #2", "Reference #2", "Sex #2", "p-value", "Correlation")
-    return(spec_corr)
   }, class = 'cell-border stripe', rownames = FALSE, 
   
   extensions = 'Buttons',
@@ -512,29 +590,15 @@ server <- function(input, output) {
                                                   filter(`Trait guild` %in% input$trait) %>% 
                                                   filter(Trait %in% trait_spec)}
     row <- input$table_cell_clicked$row
-    selected_row <- data_table[row,]
-    selected_trait <- selected_row$Trait 
-    filter_corr <- all_data %>% 
-      filter(Trait %in% selected_trait)
+    if(length(row) == 0) return(no_trait_selected_table)
+
+    gwas_hits <- gwas_hits %>% 
+      filter(Trait_ID == data_table[row,]$Trait_ID) %>% 
+      select(-Trait_ID)
     
-    gwas_hits <- gwas_hits %>% select(-Trait, -Reference, -Sex)
-    
-    # filter_data <- all_data %>% 
-    #   filter(Trait %in% selected_trait)
-    # 
-    # gwas <- gwas_hits %>% 
-    #   filter(Trait %in% filter_data$Trait_old)
-    # 
-    # old_to_new <- all_data %>% 
-    #   select(Trait, Trait_old, Reference, Sex) %>% 
-    #   distinct(Trait_old, Trait, Reference, Sex)
-    # 
-    # 
-    # gwas$Reference <- old_to_new$Reference[match(gwas$Trait, old_to_new$Trait_old)]
-    # gwas$Sex <- old_to_new$Sex[match(gwas$Trait, old_to_new$Trait_old)]
-    # gwas$Trait <- old_to_new$Trait[match(gwas$Trait, old_to_new$Trait_old)]
-    
+    if(nrow(gwas_hits) == 0) gwas_hits <- no_data_table
     return(gwas_hits)
+    
   }, class = 'cell-border stripe', rownames = FALSE, 
   
   extensions = 'Buttons',
@@ -548,28 +612,28 @@ server <- function(input, output) {
   
   
   output$corrtable <- renderDT({
-    if(is.null(input$trait) & is.null(input$trait_spec)){filter_corr <- all_data%>% 
-      select(Trait, Trait_old) %>% 
+    if(is.null(input$trait) & is.null(input$trait_spec)){filter_corr <- dt %>% 
+      select(Trait, Trait_ID) %>% 
       distinct() }else
         if(is.null(input$trait_spec)){
-          filter_corr <- all_data %>%
+          filter_corr <- dt %>%
             filter(`Trait guild` %in% input$trait)%>% 
-            select(Trait, Trait_old) %>% 
+            select(Trait, Trait_ID) %>% 
             distinct() }else
               if(is.null(input$trait))
-              {filter_corr <- all_data %>%  
+              {filter_corr <- dt %>%  
                 filter(Trait %in% input$trait_spec)%>% 
                 select(Trait) %>% 
                 distinct() }else
-                {filter_corr <- all_data %>% 
+                {filter_corr <- dt %>% 
                   filter(`Trait guild` %in% input$trait) %>% 
                   filter(Trait %in% input$trait_spec)%>% 
-                  select(Trait, Trait_old) %>% 
+                  select(Trait, Trait_ID) %>% 
                   distinct() }
     
     
     corr_gg <- corr_p %>% 
-      filter(trait %in% filter_corr$Trait_old & sec_trait %in% filter_corr$Trait_old) %>% 
+      filter(trait %in% filter_corr$Trait_ID & sec_trait %in% filter_corr$Trait_ID) %>% 
       select(trait, sec_trait, Correlation, p_val) %>% 
       arrange(desc(abs(Correlation)))
     
@@ -585,20 +649,20 @@ server <- function(input, output) {
   
   
   output$corr <- renderPlotly({
-    if(is.null(input$trait) & is.null(input$trait_spec)){filter_corr <- all_data%>% 
-      select(Trait, Trait_old) %>% 
+    if(is.null(input$trait) & is.null(input$trait_spec)){filter_corr <- dt %>% 
+      select(Trait, Trait_ID) %>% 
       distinct() }else
         if(is.null(input$trait_spec)){
-          filter_corr <- all_data %>%
+          filter_corr <- dt %>%
             filter(`Trait guild` %in% input$trait)%>% 
-            select(Trait, Trait_old) %>% 
+            select(Trait, Trait_ID) %>% 
             distinct() }else
               if(is.null(input$trait))
-              {filter_corr <- all_data %>%  
+              {filter_corr <- dt %>%  
                 filter(Trait %in% input$trait_spec)%>% 
-                select(Trait, Trait_old) %>% 
+                select(Trait, Trait_ID) %>% 
                 distinct() }else
-                {filter_corr <- all_data %>% 
+                {filter_corr <- dt %>% 
                   filter(`Trait guild` %in% input$trait) %>% 
                   filter(Trait %in% input$trait_spec)%>% 
                   select(Trait) %>% 
@@ -606,7 +670,7 @@ server <- function(input, output) {
     
     
     corr_gg <- corr_p %>% 
-      filter(trait %in% filter_corr$Trait_old & sec_trait %in% filter_corr$Trait_old)
+      filter(trait %in% filter_corr$Trait_ID & sec_trait %in% filter_corr$Trait_ID)
     
     gg_corr <- ggplot(corr_gg, aes(x = trait, y = sec_trait, fill = Correlation)) +
       geom_tile()  +
@@ -626,29 +690,33 @@ server <- function(input, output) {
   
   
   output$rawdata <- renderDT({
-    {if(is.null(input$trait) & is.null(input$study) & is.null(input$trait_spec)) data_table <- all_data  else
-      if(is.null(input$trait) & is.null(input$study)) data_table <- all_data %>% 
+    {if(is.null(input$trait) & is.null(input$study) & is.null(input$trait_spec)) data_table <- line_means  else
+      if(is.null(input$trait) & is.null(input$study)) data_table <- line_means %>% 
           filter(Trait %in% input$trait_spec) else
-            if(is.null(input$study) & is.null(input$trait_spec)) data_table <- all_data %>% 
+            if(is.null(input$study) & is.null(input$trait_spec)) data_table <- line_means %>% 
                 filter(`Trait guild` %in% input$trait) else
-                  if(is.null(input$trait) & is.null(input$trait_spec)) data_table <- all_data %>% 
+                  if(is.null(input$trait) & is.null(input$trait_spec)) data_table <- line_means %>% 
                       filter(Reference %in% input$study) else
-                        if(is.null(input$study) & is.null(input$trait_spec)) data_table <- all_data %>% 
+                        if(is.null(input$study) & is.null(input$trait_spec)) data_table <- line_means %>% 
                             filter(`Trait guild` %in% input$trait) else
-                              if(is.null(input$trait_spec)) data_table <- all_data %>% 
+                              if(is.null(input$trait_spec)) data_table <- line_means %>% 
                                   filter(Reference %in% input$study) %>% 
                                   filter(`Trait guild` %in% input$trait) else
-                                    if(is.null(input$trait)) data_table <- all_data %>% 
+                                    if(is.null(input$trait)) data_table <- line_means %>% 
                                         filter(Reference %in% input$study) %>% 
                                         filter(Trait %in% input$trait_spec) else
-                                          if(is.null(input$study)) data_table <- all_data %>% 
+                                          if(is.null(input$study)) data_table <- line_means %>% 
                                               filter(`Trait guild` %in% input$trait) %>% 
                                               filter(Trait %in% input$trait_spec) else
-                                                data_table <- all_data %>% 
+                                                data_table <- line_means %>% 
                                                   filter(Reference %in% input$study) %>% 
                                                   filter(`Trait guild` %in% input$trait) %>% 
                                                   filter(Trait %in% trait_spec)}
-    return(data_table)
+    
+    data_table %>% 
+      rename(`Trait value` = trait_value,
+             `DGRP line` = line,
+             `Trait ID` = Trait_ID) 
   }, class = 'cell-border stripe', rownames = FALSE, 
   
   extensions = 'Buttons',

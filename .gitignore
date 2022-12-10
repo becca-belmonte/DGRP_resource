@@ -2,3 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
+app_data/Manhattan plots/*
+.DS_Store
