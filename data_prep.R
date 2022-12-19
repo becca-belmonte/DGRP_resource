@@ -11,6 +11,7 @@
 
 
 library(tidyverse)
+library(stringr)
 
 # Load data from Github repo and local literature search file (need to update that file...)
 lit_search_file <- read_csv("DGRP QTC literature.search_20220411.csv")
@@ -91,6 +92,16 @@ heritability <- heritability %>%
   rename(Trait_ID = Trait)
 
 
+###############################################################
+# Making the meta_info file - contains details for experimental conditions
+meta_info <- dt %>% 
+  distinct(Trait_ID, Trait, Reference) %>% 
+  left_join(lit_search_file %>% 
+              filter(!is.na(Reference)) %>% 
+              select(Reference, `No. lines used`, Sex, Age, `Sample Size (per sex if applic)`, Housing, Diet, Temperature, `Wolbachia adjusted`, `Baseline reference (eg competitor genptype)`) %>% 
+              distinct(Reference, .keep_all = TRUE),
+            by = "Reference")
+
 
 ###############################################################
 # Make pub_info (for the table with full publication information):
@@ -135,6 +146,8 @@ rownames(corr_dt) <- corr_dt$line
 corr_dt <- corr_dt %>% 
   dplyr::select(-line) 
 
+library(psych)
+
 spearman_results <- corr.test(corr_dt, adjust = "holm", ci = FALSE, method = "spearman")
 spearman_corr_p_values <- as.data.frame(spearman_results$p)
 spearman_corr <- as.data.frame(spearman_results$r)
@@ -148,7 +161,7 @@ corr_gg <- spearman_corr %>%
   arrange(trait) %>% 
   distinct(traits_together, .keep_all = TRUE) %>% 
   filter(!trait == sec_trait) %>% 
-  filter(combo != "sec_combo")
+  filter(combo != "sec_combo") 
 
 corr_p <- spearman_corr_p_values %>% 
   mutate(sec_trait = rownames(spearman_corr_p_values)) %>% 
@@ -163,14 +176,62 @@ corr_p <- spearman_corr_p_values %>%
   left_join(corr_gg)
 corr_p <- corr_p %>% 
   mutate(Correlation = round(Correlation, 3)) %>% 
-  mutate(p_val = round(p_val, 3))
+  mutate(p_val = round(p_val, 3)) 
+
+corr_p <- cbind(corr_p, dt[match(corr_p$trait, dt$Trait_ID), "Sex"])
+colnames(corr_p)[ncol(corr_p)] = "Sex_1"
+
+corr_p <- cbind(corr_p, dt[match(corr_p$sec_trait, dt$Trait_ID), "Sex"])
+colnames(corr_p)[ncol(corr_p)] = "Sex_2"
+
+corr_p <- corr_p %>% 
+  mutate(trait_ID_1 = trait) %>% 
+  mutate(trait_ID_2 = sec_trait)%>% 
+  mutate(trait = case_when(Sex_1 == "Female" | Sex_1 == "Male" ~ gsub('.{2}$', '', trait_ID_1),
+                           Sex_1 == "Both" ~ trait_ID_1,
+                           Sex_1 == "Pooled" ~ trait_ID_1)) %>% 
+  mutate(trait = gsub("201.", "", trait)) %>% 
+  mutate(trait = gsub("202.", "", trait)) %>% 
+  mutate(trait = gsub("\\.", " ", trait)) %>% 
+  mutate(trait = gsub(" aeruginosa", ". aeruginosa", trait)) %>% 
+  mutate(trait = gsub(" entomophila", ". entomophila", trait)) %>% 
+  mutate(trait = gsub(" monocytogenes", ". monocytogenes", trait)) %>% 
+  mutate(trait = gsub(" rettgeri", ". rettgeri", trait)) %>% 
+  mutate(trait = gsub(" anisopliae", ". anisopliae", trait)) %>% 
+  mutate(trait = gsub("0 2", "0.2", trait)) %>% 
+  mutate(trait = gsub("0 5", "0.5", trait)) %>% 
+  mutate(trait = str_to_sentence(trait)) %>% 
+  mutate(trait = paste(trait, " (", Sex_1, ")", sep = "")) %>% 
+  mutate(sec_trait = case_when(Sex_2 == "Female" | Sex_2 == "Male" ~ gsub('.{2}$', '', trait_ID_2),
+                               Sex_2 == "Both" ~ trait_ID_2,
+                               Sex_2 == "Pooled" ~ trait_ID_2)) %>% 
+  mutate(sec_trait = gsub("201.", "", sec_trait)) %>% 
+  mutate(sec_trait = gsub("202.", "", sec_trait)) %>% 
+  mutate(sec_trait = gsub("\\.", " ", sec_trait)) %>% 
+  mutate(sec_trait = gsub(" aeruginosa", ". aeruginosa", sec_trait)) %>% 
+  mutate(sec_trait = gsub(" entomophila", ". entomophila", sec_trait)) %>% 
+  mutate(sec_trait = gsub(" monocytogenes", ". monocytogenes", sec_trait)) %>% 
+  mutate(sec_trait = gsub(" rettgeri", ". rettgeri", sec_trait)) %>% 
+  mutate(sec_trait = gsub(" anisopliae", ". anisopliae", sec_trait)) %>% 
+  mutate(sec_trait = gsub("0 2", "0.2", sec_trait)) %>% 
+  mutate(sec_trait = gsub("0 5", "0.5", sec_trait)) %>% 
+  mutate(sec_trait = str_to_sentence(sec_trait)) %>% 
+  mutate(sec_trait = paste(sec_trait, " (", Sex_2, ")", sep = "")) 
+
+###############################################################
+# Combine meta data and line means for all data
+all_data <- line_means %>% 
+  left_join(dt)
+
 
 
 saveRDS(dt, "app_data/dt.RDS") 
 saveRDS(line_means, "app_data/line_means.rds")
 saveRDS(heritability, "app_data/heritability.rds")
+saveRDS(meta_info, "app_data/meta_info.rds")
 saveRDS(pub_info, "app_data/pub_info.rds")
 saveRDS(gwas_hits, "app_data/gwas_hits.rds")
 saveRDS(gwas_summary, "app_data/gwas_summary.rds")
 saveRDS(corr_p, "app_data/corr_p.rds")
+saveRDS(all_data, "app_data/all_data.rds")
 
