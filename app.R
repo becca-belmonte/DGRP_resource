@@ -36,91 +36,91 @@ infoBtn <- function(id) {
 }
 
 ui <- dashboardPage(skin = "black",
-  dashboardHeader(title = "DGRP resource",
-                  dropdownMenu(type = "messages",
-                               messageItem(
-                                 from = "Project in Github",
-                                 message = "Documentation, Source, Citation",
-                                 href = "https://github.com/becca-belmonte/DGRP_resource",
-                                 icon = icon("github")
-                               ),
-                               messageItem(
-                                 from = "Link to Paper",
-                                 message = "Here is the associated paper",
-                                 href = "https://onlinelibrary.wiley.com/",
-                                 icon = icon("file")
-                               ),
-                               icon = icon("link"),
-                               headerText = "External links")),
-  dashboardSidebar(
-    sidebarMenu(
-      sidebarMenuOutput("menu")
-    )
-  ),
-  dashboardBody(
-    tabItems(
-      tabItem(
-        tabName = "traits",
-    fluidRow(
-        box(infoBtn('workingPop') %>%
-              bsPopover(title = "Filtering traits",
-                        content = "Use the selection tools on the left sidebar to limit your results based on the general category they belong to or the originial paper they came
+                    dashboardHeader(title = "DGRP resource",
+                                    dropdownMenu(type = "messages",
+                                                 messageItem(
+                                                   from = "Project in Github",
+                                                   message = "Documentation, Source, Citation",
+                                                   href = "https://github.com/becca-belmonte/DGRP_resource",
+                                                   icon = icon("github")
+                                                 ),
+                                                 messageItem(
+                                                   from = "Link to Paper",
+                                                   message = "Here is the associated paper",
+                                                   href = "https://onlinelibrary.wiley.com/",
+                                                   icon = icon("file")
+                                                 ),
+                                                 icon = icon("link"),
+                                                 headerText = "External links")),
+                    dashboardSidebar(
+                      sidebarMenu(
+                        sidebarMenuOutput("menu")
+                      )
+                    ),
+                    dashboardBody(
+                      tabItems(
+                        tabItem(
+                          tabName = "traits",
+                          fluidRow(
+                            box(infoBtn('workingPop') %>%
+                                  bsPopover(title = "Filtering traits",
+                                            content = "Use the selection tools on the left sidebar to limit your results based on the general category they belong to or the originial paper they came
                 from. Or, if you have a particular trait in mind, select that from the middle selection tool.",
-                        placement = "bottom",
-                        trigger = "hover"
-              ),h3(textOutput("instruct"), align = "center"), DTOutput("table"), width = 6),
-    box(h3(textOutput("selection"), align = "center"), width = 6), 
-    tabBox(width = 6,
-           tabPanel("Trait value graph", plotlyOutput("barchart")),
-           tabPanel("Manhattan plot", imageOutput("manhattan"))),
-        tabBox(width = 6,
-          tabPanel("Heritability Data",  DTOutput("herinfo")), 
-          tabPanel("Strongest Correlations", DTOutput("corrinfo")),
-          tabPanel("Publication Data", DTOutput("pubinfo")),
-          tabPanel("Experimental Conditions", DTOutput("metainfo")),
-          tabPanel("GWAS Hits", DTOutput("gwashits")),
-          tabPanel("GWAS Summary", DTOutput("gwassummary"))
-          ))),
-    tabItem(
-      tabName = "correlations",
-      fluidRow(box(plotlyOutput("corr"), width = 6), box(DTOutput("corrtable"), width = 6))
-      ),
-    tabItem(
-      tabName = "raw",
-      fluidRow(box(DTOutput("rawdata"), width = 12))
-    ),
-    tabItem(
-      tabName = "howto",
-      tabBox(
-        tabPanel("Info about traits",
-          h4("This tab displays a wealth of information about a trait that you have selected."), 
-          h4("The interactive table in the centre shows a list of over 2000 traits in the database."), 
-          h4("Use the 'Select' bars to the left, or the search function above the central table, to explore the list of measured traits in this database, then click a trait that interests you."), 
-          h4("The bar chart shows the estimated mean trait value for each DGRP line. The plot will show males and females separately, if line means were estimated for both sexes in the same study. Hover over this graph to see information about each bar."),
-          h4("In the tabs in the lower right, you can view various tables. The heritability table shows COMPLETE THIS INFO. The 'Strongest correlations' table shows COMPLETE THIS INFO. The 'Publication data' gives a link to the source for this set of measurements, and a complete citation. The 'Experimental conditions' table shows COMPLETE THIS INFO. Finally, the 'GWAS hits' table shows a list of all the variants with a p-value below 1e-5 for the selected trait (see our publication for information on the GWAS methods), alongside information on each of these variants such as the site class of the variant, any genes it is inside/near, information on its major and minor alleles, and the GWAS summary statistics from PLINK. Note that some variants are associated with multiple genes and site classes, and so there may be more rows in table than there are significant GWAS hits."),
-
-          h4("You can use the buttons marked Copy/CSV/Excel to save or export any of these data")),
-      tabPanel("Correlations",
-          h4("On this tab you can learn more about how different traits relate to each other."),
-          h4("- To begin with you will see a correlation matrix of all traits."),
-          h4("- Hover over this graph or zoom in to see specific correlation values."),
-          h4("- Select trait categories or specific traits to view correlations of the applicable traits (Note: more than one trait must be selected)."),
-          h4("- Below the graph, you will see a table of correlations between each two traits selected, along with the raw p-value.")),
-      tabPanel("Raw Data",
-          h4("If you are interested in the raw data that we used to build this resource, you can download it here."), 
-          h4("- You can filter the data in the same manner as previous tabs."),
-          h4("- Once you have selected the data you are interested in, click copy, csv, or excel to export in your desired format.")), width = 12)
-    ),
-    tabItem(
-      tabName = "info",
-      box(h2("Correlation calculations"),
-          h4("To calculate the correlation between each trait, we used a spearman correlation test with the psych package for R. The code used was"),
-          code("corr.test(corr_dt, adjust = 'holm', ci = FALSE, method = 'spearman')"), width = 12)
-    )
-    )
-  )
+                                            placement = "bottom",
+                                            trigger = "hover"
+                                  ),h3(textOutput("instruct"), align = "center"), DTOutput("table"), width = 6),
+                            box(h3(textOutput("selection"), align = "center"), width = 6), 
+                            tabBox(width = 6,
+                                   tabPanel("Trait value graph", plotlyOutput("barchart")),
+                                   tabPanel("Manhattan plot", imageOutput("manhattan"))),
+                            tabBox(width = 6,
+                                   tabPanel("Heritability Data",  DTOutput("herinfo")), 
+                                   tabPanel("Strongest Correlations", DTOutput("corrinfo")),
+                                   tabPanel("Publication Data", DTOutput("pubinfo")),
+                                   tabPanel("Experimental Conditions", DTOutput("metainfo")),
+                                   tabPanel("GWAS Hits", DTOutput("gwashits")),
+                                   tabPanel("GWAS Summary", DTOutput("gwassummary"))
+                            ))),
+                        tabItem(
+                          tabName = "correlations",
+                          fluidRow(box(plotlyOutput("corr"), width = 6), box(DTOutput("corrtable"), width = 6))
+                        ),
+                        tabItem(
+                          tabName = "raw",
+                          fluidRow(box(DTOutput("rawdata"), width = 12))
+                        ),
+                        tabItem(
+                          tabName = "howto",
+                          tabBox(
+                            tabPanel(HTML("<b>Info about traits</b>"),
+                                     h4("This tab displays a wealth of information about each phenotypic trait in the database."), 
+                                     h4(HTML("The interactive table in the centre shows a list of over 2000 traits in the database. The column <i>Sex</i> indicates the sex in which this trait was measured, <i>Description</i> describes the trait and explains what a higher trait value means, and <i>Reference</i> gives the source for this trait data.")), 
+                                     h4(HTML("Use one or more of the three <i>Select</i> bars to the left, or the search function above the central table, to explore the list of traits in this database, then click a trait that interests you to bring up further information about it.")), 
+                                     h4("The bar chart shows the estimated mean trait value for each DGRP line. Hover over this graph to see information about each bar."),
+                                     h4(HTML("The tabs in the lower right can be used to view various tables. The tab <b>Heritability</b> shows COMPLETE THIS INFO. <b>Strongest correlations</b> shows COMPLETE THIS INFO. <b>Publication data</b> gives the complete citation for the source, plus a link to the source. <b>Experimental conditions</b> shows COMPLETE THIS INFO. <b>GWAS hits</b> shows a list of all the variants with a <i>p</i>-value below 1e-5 for the selected trait, alongside information on each of these variants such as the site class of the variant, any genes it is inside/near, information on its major and minor alleles, and the GWAS summary statistics from PLINK. Note that some variants are associated with multiple genes and site classes, and so there may be more rows in table than there are significant GWAS hits. Finally, <b>GWAS Summary</b> shows the number of variants per chromosome with a <i>p</i>-value below 1e-5 and below 1e-8.")),
+                                     
+                                     h4("You can use the buttons marked Copy/CSV/Excel to save or export any of these data")),
+                            tabPanel("Correlations",
+                                     h4("On this tab you can learn more about how different traits relate to each other."),
+                                     h4("- To begin with you will see a correlation matrix of all traits."),
+                                     h4("- Hover over this graph or zoom in to see specific correlation values."),
+                                     h4("- Select trait categories or specific traits to view correlations of the applicable traits (Note: more than one trait must be selected)."),
+                                     h4("- Below the graph, you will see a table of correlations between each two traits selected, along with the raw p-value.")),
+                            tabPanel("Raw Data",
+                                     h4("If you are interested in the raw data that we used to build this resource, you can download it here."), 
+                                     h4("- You can filter the data in the same manner as previous tabs."),
+                                     h4("- Once you have selected the data you are interested in, click copy, csv, or excel to export in your desired format.")), width = 12)
+                        ),
+                        tabItem(
+                          tabName = "info",
+                          box(h2("Correlation calculations"),
+                              h4("To calculate the correlation between each trait, we used a spearman correlation test with the psych package for R. The code used was"),
+                              code("corr.test(corr_dt, adjust = 'holm', ci = FALSE, method = 'spearman')"), width = 12)
+                        )
+                      )
+                    )
 )
-  
+
 
 
 
@@ -159,7 +159,7 @@ server <- function(input, output, session) {
       })   )
     )
   })
- 
+  
   output$instruct <- renderText({
     {if(is.null(input$trait) & is.null(input$study) & is.null(input$trait_spec)) data_table <- dt  else
       if(is.null(input$trait) & is.null(input$study)) data_table <- dt %>% 
@@ -312,7 +312,7 @@ server <- function(input, output, session) {
       y_max <- max_value + 0.07 * range
       if(y_min < 0 & all(filter_data_trait$trait_value > 0)) y_min <- 0
       filter_data_trait <- rename(filter_data_trait, `Trait value` = trait_value)
-
+      
       ggplotly(
         ggplot(filter_data_trait,
                aes(x = reorder(line, `Trait value`), 
@@ -384,7 +384,7 @@ server <- function(input, output, session) {
          width = width,
          height = height,
          alt = paste("Trait:", selected_trait))
-
+    
   }, deleteFile = FALSE)
   
   
@@ -421,7 +421,7 @@ server <- function(input, output, session) {
     
     if(nrow(pub_info) == 0) pub_info <- no_data_table
     pub_info 
-
+    
   }, class = 'cell-border stripe', rownames = FALSE, 
   
   extensions = 'Buttons',
@@ -471,7 +471,7 @@ server <- function(input, output, session) {
     
     if(nrow(meta_info) == 0) meta_info <- no_data_table
     meta_info 
-
+    
   }, class = 'cell-border stripe', rownames = FALSE, 
   
   extensions = 'Buttons',
@@ -513,7 +513,7 @@ server <- function(input, output, session) {
     herit_info <- herit_info %>% 
       filter(Trait_ID %in% data_table[row,]$Trait_ID)  %>% 
       select(-Trait_ID)
-
+    
     if(nrow(herit_info) == 0) herit_info <- no_data_table
     herit_info 
     
@@ -613,7 +613,7 @@ server <- function(input, output, session) {
                                                   filter(Trait %in% trait_spec)}
     row <- input$table_cell_clicked$row
     if(length(row) == 0) return(no_trait_selected_table)
-
+    
     gwas_hits <- gwas_hits %>% 
       filter(Trait_ID == data_table[row,]$Trait_ID) %>% 
       select(-Trait_ID)
@@ -743,18 +743,18 @@ server <- function(input, output, session) {
       filter(trait_ID_1 %in% filter_corr$Trait_ID & trait_ID_2 %in% filter_corr$Trait_ID)
     
     gg_corr <- ggplot(corr_gg, aes(x = trait_ID_1, y = trait_ID_2, fill = Correlation, text = paste("Trait #1: ", trait, "\n", "Trait #2: ", sec_trait, sep = ""))) +
-        geom_tile()  +
-        scale_fill_viridis_c(limits = c(-1, 1)) +
-        scale_color_manual(values = "#FCFDBF") +
-        theme_classic() +
-        theme(axis.text.x = element_blank(),
-              axis.text.y = element_blank(),
-              legend.position = c(0.75,0.3)) +
-        xlab("") +
-        ylab("") +
-        labs(fill = "Correlation") +
-        scale_x_discrete(position = "top") +
-        guides(color = "none")
+      geom_tile()  +
+      scale_fill_viridis_c(limits = c(-1, 1)) +
+      scale_color_manual(values = "#FCFDBF") +
+      theme_classic() +
+      theme(axis.text.x = element_blank(),
+            axis.text.y = element_blank(),
+            legend.position = c(0.75,0.3)) +
+      xlab("") +
+      ylab("") +
+      labs(fill = "Correlation") +
+      scale_x_discrete(position = "top") +
+      guides(color = "none")
     
     ggplotly(gg_corr, tooltip = c("text","Correlation"))
   } 
@@ -800,7 +800,7 @@ server <- function(input, output, session) {
   )
   )
   
-
+  
 }
 
 shinyApp(ui, server)

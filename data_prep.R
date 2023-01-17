@@ -1,10 +1,9 @@
 # To-do list
 
-# Fix Manhattan plots
-# Fix the correlation table to work with output of main project
-# Make completed version of lit_search_file, with necessary columns for pub_info and meta_info
-# Update the heritability data with Tom's new methods
-# Check the text in tooltips, readmes, etc
+# Fix the correlation table to work with output of main project (Luke and Tom to-do)
+# Make completed version of lit_search_file, with necessary columns for pub_info and meta_info (to be discussed at our meeting - maybe unnecessary work?)
+# Update the heritability data with Tom's new methods (Tom to-do)
+# Update/check the text in readmes, especially the 'info about calculations' one
 # Fix or remove the correlation heat map viewer
 # Standardise terminology "trait guild"?
 # Fix non-unique new trait names, dt %>% group_by(Trait, Sex) %>% summarise(n=n()) %>% filter(n>1) %>% print(n=10000)
@@ -119,8 +118,8 @@ pub_info <- dt %>%
 # And gwas_summary (counts of significant snps on each chromosome)
 
 gwas_hits <- gwas_hits %>%
-  mutate(log10_P = format(round(log10_P, 2), nsmall = 2)) %>% 
-  select(Trait_ID = trait, Variant = SNP, 
+  mutate(log10_P = format(round(-1 * log10(P), 2), nsmall = 2)) %>% 
+  select(Trait_ID, Variant, 
          FBID, `Gene name` = gene_name, `Site class` = site_class, 
          `Distance to gene` = distance_to_gene, 
          `Minor allele frequency` = MAF, 
@@ -232,6 +231,6 @@ saveRDS(meta_info, "app_data/meta_info.rds")
 saveRDS(pub_info, "app_data/pub_info.rds")
 saveRDS(gwas_hits, "app_data/gwas_hits.rds")
 saveRDS(gwas_summary, "app_data/gwas_summary.rds")
-saveRDS(corr_p, "app_data/corr_p.rds")
 saveRDS(all_data, "app_data/all_data.rds")
+saveRDS(corr_p, "app_data/corr_p.rds")
 
