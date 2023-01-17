@@ -370,7 +370,7 @@ server <- function(input, output, session) {
                                                   filter(Trait %in% trait_spec)}
     
     selected_trait <- data_table[input$table_cell_clicked$row,]$Trait_ID 
-    
+    selected_trait <- gsub(":", "_", selected_trait)
     if(length(selected_trait) != 0) {
       filename <- normalizePath(file.path('./app_data/Manhattan plots/', paste(selected_trait, '.jpeg', sep = "")))  
     } else filename <- normalizePath(file.path('./app_data/blank_manhattan.jpeg'))
